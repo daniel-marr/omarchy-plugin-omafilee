@@ -293,25 +293,36 @@ Item {
   // Hyprland's Lua state, so they are registered again on config.reloaded;
   // the version guard stops a shell restart from adding duplicates.
   readonly property string hyprLua: [
-    "local V = 'omafilee-1'",
+    "local V = 'omafilee-2'",
     "if _G.omafilee_rules == V then return end",
     "_G.omafilee_rules = V",
     "local GAP, SHADOW = " + Math.round(Style.gapsOut) + ", " + Math.round(root.shadowMargin),
     "local function ours(w) return w and w.class == 'org.quickshell' and w.title == 'OmaFilee' end",
+    // Top-right of its monitor, just under the bar, with the window's
+    // transparent shadow margin hanging past the corner. The rule places it
+    // before it maps, so Hyprland's popin grows it in place rather than
+    // sliding it in from wherever it would otherwise open.
+    "local function target(m)",
+    "  local r = m.reserved",
+    "  return m.width / m.scale - r.right - GAP + SHADOW, r.top + GAP - SHADOW",
+    "end",
+    "local right, top = target(hl.get_active_monitor())",
     "hl.window_rule({",
     "  match = { class = '^org\\\\.quickshell$', title = '^OmaFilee$' },",
     "  tag = '-default-opacity', float = true, pin = true, no_initial_focus = true, no_dim = true,",
     "  opacity = '1 1', border_size = 0, rounding = 0, no_shadow = true, no_blur = true,",
+    "  animation = 'popin 60%',",
+    "  move = { '(' .. math.floor(right) .. '-window_w)', tostring(math.floor(top)) },",
     "})",
-    // Top-right of its monitor, just under the bar (whatever its size), with
-    // the window's transparent shadow margin hanging past the corner.
+    // A monitor whose bar differs from the one at registration: correct it.
     "hl.on('window.open', function(w)",
     "  if not ours(w) then return end",
     "  local m = w.monitor or hl.get_active_monitor()",
-    "  local r = m.reserved",
-    "  local x = m.x + m.width / m.scale - r.right - w.size.x - GAP + SHADOW",
-    "  local y = m.y + r.top + GAP - SHADOW",
-    "  hl.dispatch(hl.dsp.window.move({ x = math.floor(x), y = math.floor(y), window = w }))",
+    "  local r, t = target(m)",
+    "  local x, y = math.floor(m.x + r - w.size.x), math.floor(m.y + t)",
+    "  if math.abs(w.at.x - x) > 1 or math.abs(w.at.y - y) > 1 then",
+    "    hl.dispatch(hl.dsp.window.move({ x = x, y = y, window = w }))",
+    "  end",
     "end)",
     // Hyprland has no always-on-top rule; raise the donut whenever focus moves.
     "hl.on('window.active', function()",
@@ -376,10 +387,6 @@ Item {
     Item {
       id: donut
       anchors.fill: parent
-      scale: win.visible ? 1 : 0.9
-      opacity: win.visible ? 1 : 0
-      Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
-      Behavior on opacity { NumberAnimation { duration: 140 } }
 
       Canvas {
         id: ring

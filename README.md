@@ -128,7 +128,7 @@ Filee stays installed; remove it with the `uninstall.sh` in
   format (see Requirements).
 - **The donut opens as a tiled window:** the runtime rules didn't register.
   `hyprctl repl 'return tostring(_G.omafilee_rules)'` should print
-  `omafilee-1`; check the shell log with
+  `omafilee-2`; check the shell log with
   `quickshell log -p /usr/share/omarchy/shell | grep omafilee`.
 
 ## Development
