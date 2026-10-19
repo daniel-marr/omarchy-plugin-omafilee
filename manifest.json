@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "daniel-marr.omafilee",
+  "name": "OmaFilee",
+  "version": "0.1.0",
+  "author": "Daniel Marr",
+  "license": "MIT",
+  "description": "Unofficial Filee front end: drop files on a themed donut to convert them offline with the Filee CLI.",
+  "kinds": [
+    "bar-widget",
+    "panel"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "panel": "Converter.qml"
+  },
+  "barWidget": {
+    "displayName": "Filee converter",
+    "description": "Open or close the floating Filee converter donut",
+    "category": "Utilities",
+    "aliases": [
+      "filee",
+      "convert",
+      "converter"
+    ],
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

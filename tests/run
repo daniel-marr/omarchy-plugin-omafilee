@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Portable checks: no Omarchy desktop needed (the Omarchy validator runs when present).
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+python3 -m json.tool "$root/manifest.json" >/dev/null
+bash -n "$root/scripts/dev-install.sh"
+node --test "$root/tests/"
+
+if command -v omarchy >/dev/null 2>&1; then
+  omarchy plugin validate "$root"
+fi
+
+printf 'All portable plugin checks passed.\n'
