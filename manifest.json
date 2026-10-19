@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "Daniel Marr",
   "license": "MIT",
-  "description": "Unofficial Filee front end: drop files on a themed donut to convert them offline with the Filee CLI.",
+  "description": "Fast file conversion from your bar. Drag a file onto the donut (or pick one), choose the output format, done. Images, documents, video, audio and more.",
   "kinds": [
     "bar-widget",
     "panel"
@@ -17,7 +17,7 @@
   },
   "barWidget": {
     "displayName": "Filee converter",
-    "description": "Open or close the floating Filee converter donut",
+    "description": "Open the file conversion donut",
     "category": "Utilities",
     "aliases": [
       "filee",
