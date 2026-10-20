@@ -137,7 +137,7 @@ Item {
     if (root.busy || !slice) return
     var wildcard = root.files.find(function(f) { return !Model.isLiteralPath(f.path) })
     if (wildcard) {
-      root.showError("Rename " + wildcard.name + " (no * or ?)")
+      root.showError("Rename file and try again.")
       return
     }
     var usable = root.files.filter(function(f) { return f.format !== "" })
@@ -218,7 +218,7 @@ Item {
     if (root.result) return root.result.done + (root.result.done === 1 ? " file saved" : " files saved") + " · open folder"
     if (root.files.length > 0) return "Pick a format · click to clear"
     if (!root.catalogReady) return "Loading formats…"
-    return "Drop files here\nor click to choose"
+    return "Drop files or\nclick to choose"
   }
 
   readonly property string centerIcon: root.result && !root.busy && !root.dragActive
@@ -591,10 +591,12 @@ Item {
 
           Text {
             textFormat: Text.PlainText
-            width: parent.width
+            // The hole narrows below its middle: keep to two lines inside it.
+            width: hole.width * 0.8
+            anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
-            maximumLineCount: 3
+            maximumLineCount: 2
             elide: Text.ElideRight
             text: root.centerSubtitle
             color: root.result && !root.result.ok && !root.busy && !root.dragActive ? Commons.Color.urgent : Util.alpha(root.fg, 0.6)

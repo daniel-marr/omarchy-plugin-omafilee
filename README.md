@@ -124,7 +124,7 @@ Filee stays installed; remove it with the `uninstall.sh` in
 
 - **"Install the filee CLI"** in the middle: `filee` isn't on `PATH` or at
   `~/.local/bin/filee`. Check with `filee version`.
-- **"Rename … (no * or ?)":** the Filee CLI treats `*` and `?` in a file
+- **"Rename file and try again."** when the name contains `*` or `?`: the Filee CLI treats `*` and `?` in a file
   name as wildcards, which could pick up other files in the same folder, so
   OmaFilee refuses those names. Rename the file and drop it again.
 - **A slice fails with an engine error:** install the optional engine for that
