@@ -135,6 +135,11 @@ Item {
 
   function convert(slice) {
     if (root.busy || !slice) return
+    var wildcard = root.files.find(function(f) { return !Model.isLiteralPath(f.path) })
+    if (wildcard) {
+      root.showError("Rename " + wildcard.name + " (no * or ?)")
+      return
+    }
     var usable = root.files.filter(function(f) { return f.format !== "" })
     if (usable.length === 0) {
       root.showError(root.files.length === 0 ? "No files" : "Filee doesn't know these files")

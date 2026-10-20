@@ -8,7 +8,7 @@ const source = readFileSync(new URL('../FileeModel.js', import.meta.url), 'utf8'
 const Model = {}
 vm.runInNewContext(source + `
 Object.assign(out, { DEFAULT_PROFILES, parseFormats, parsePresets, parseUserProfiles, selectUserProfile,
-  selectDefaultProfile, slicesFor, hitTest, urlToPath, formatForPath, toFiles, convertArgs, parseResult, summarize })`,
+  selectDefaultProfile, slicesFor, hitTest, urlToPath, formatForPath, toFiles, isLiteralPath, convertArgs, parseResult, summarize })`,
 { out: Model })
 const plain = v => JSON.parse(JSON.stringify(v))
 
@@ -102,6 +102,14 @@ test('hitTest finds centre, slices clockwise from the top, and outside', () => {
 test('convertArgs uses the preset and skips unknown files', () => {
   const files = [{ path: '/a.png', format: 'png' }, { path: '/b', format: '' }]
   assert.deepEqual([...Model.convertArgs(files, 'to-webp')], ['convert', '/a.png', '--preset', 'to-webp', '--json'])
+})
+
+test('convertArgs never passes wildcard characters to Filee', () => {
+  assert.equal(Model.isLiteralPath('/a/photo.png'), true)
+  assert.equal(Model.isLiteralPath('/a/photo?.png'), false)
+  assert.equal(Model.isLiteralPath('/a/*.png'), false)
+  const files = [{ path: '/a/*.png', format: 'png' }, { path: '/a/x?.png', format: 'png' }, { path: '/a/b.png', format: 'png' }]
+  assert.deepEqual([...Model.convertArgs(files, 'to-webp')], ['convert', '/a/b.png', '--preset', 'to-webp', '--json'])
 })
 
 test('parseResult validates and summarize counts', () => {

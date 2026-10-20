@@ -229,9 +229,15 @@ function toFiles(paths, extMap) {
   return out
 }
 
+// Filee's CLI expands any input containing * or ? as a wildcard and has no
+// way to escape it, so such a path could convert other files in its folder.
+function isLiteralPath(path) {
+  return !/[*?]/.test(String(path || ""))
+}
+
 function convertArgs(files, presetId) {
   var args = ["convert"]
-  files.forEach(function(f) { if (f.format !== "") args.push(f.path) })
+  files.forEach(function(f) { if (f.format !== "" && isLiteralPath(f.path)) args.push(f.path) })
   args.push("--preset", presetId, "--json")
   return args
 }
