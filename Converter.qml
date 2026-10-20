@@ -565,8 +565,8 @@ Item {
 
         Column {
           anchors.centerIn: parent
-          width: parent.width - Style.space(18)
-          spacing: Style.space(2)
+          width: hole.width * 0.82
+          spacing: Style.space(1)
 
           Text {
             textFormat: Text.PlainText
@@ -574,7 +574,7 @@ Item {
             text: root.centerIcon
             color: root.result && !root.busy && !root.dragActive && !root.result.ok ? Commons.Color.urgent : root.accent
             font.family: root.fontFamily
-            font.pixelSize: Style.font.display
+            font.pixelSize: Math.min(Style.font.display, Math.round(hole.width * 0.16))
           }
 
           Text {
@@ -585,14 +585,14 @@ Item {
             text: root.centerTitle
             color: root.fg
             font.family: root.fontFamily
-            font.pixelSize: Style.font.body
+            font.pixelSize: Math.min(Style.font.body, Math.round(hole.width * 0.09))
             font.bold: true
           }
 
           Text {
             textFormat: Text.PlainText
-            // The hole narrows below its middle: keep to two lines inside it.
-            width: hole.width * 0.8
+            // The hole narrows below its middle: two short lines, sized to it.
+            width: hole.width * 0.72
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
@@ -601,7 +601,7 @@ Item {
             text: root.centerSubtitle
             color: root.result && !root.result.ok && !root.busy && !root.dragActive ? Commons.Color.urgent : Util.alpha(root.fg, 0.6)
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Math.min(Style.font.caption, Math.round(hole.width * 0.072))
           }
         }
       }
