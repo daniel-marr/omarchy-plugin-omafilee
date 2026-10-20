@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.Commons
@@ -22,6 +23,8 @@ Item {
   property var shell: null
   property var manifest: null
   property bool opened: false
+  property string presentationMode: "centered"
+  readonly property bool isCorner: presentationMode === "corner"
 
   // Catalogue from `filee formats` / `filee presets`, loaded once, plus the
   // user's own donuts from the Filee app when they exist.
@@ -42,15 +45,15 @@ Item {
   property var result: null
   property var pendingRequest: null
 
-  readonly property real outerRadius: Style.space(150)
-  readonly property real innerRadius: outerRadius * 0.42
-  readonly property real popOut: Style.space(7)
-  readonly property real shadowMargin: Style.space(16)
+  readonly property real outerRadius: Style.space(isCorner ? 150 : 190)
+  readonly property real innerRadius: outerRadius * (isCorner ? 0.42 : 0.44)
+  readonly property real popOut: Style.space(isCorner ? 7 : 8)
+  readonly property real shadowMargin: Style.space(isCorner ? 16 : 20)
   readonly property real side: 2 * (outerRadius + popOut + shadowMargin)
 
   readonly property color fg: Commons.Color.popups.text
-  // Opaque: the theme's popup background can carry alpha.
-  readonly property color bg: Qt.rgba(Commons.Color.popups.background.r, Commons.Color.popups.background.g, Commons.Color.popups.background.b, 1)
+  // Translucent with blur: allows Omarchy compositor blur to show through
+  readonly property color bg: Qt.rgba(Commons.Color.popups.background.r, Commons.Color.popups.background.g, Commons.Color.popups.background.b, 0.75)
   readonly property color border: Commons.Color.popups.border
   readonly property color accent: Commons.Color.accent
   readonly property string fontFamily: Style.font.family
@@ -79,6 +82,8 @@ Item {
     if (!root.catalogReady && !formatsProc.running) root.loadCatalog()
     var payload = ({})
     try { payload = JSON.parse(payloadJson || "{}") || ({}) } catch (e) { payload = ({}) }
+    if (typeof payload.mode === "string" && (payload.mode === "corner" || payload.mode === "centered"))
+      root.presentationMode = payload.mode
     if (Array.isArray(payload.files))
       root.loadFiles(payload.files.slice(0, 200).filter(function(p) { return typeof p === "string" }))
     if (typeof payload.preset === "string" && /^[A-Za-z0-9._-]{1,48}$/.test(payload.preset)) {
@@ -184,8 +189,10 @@ Item {
     if (hit.kind === "center") {
       if (button === Qt.RightButton) { root.clearFiles(); return }
       if (root.busy) root.cancel()
-      else if (root.result && root.result.outputs.length > 0)
-        root.openPath(root.result.outputs.length === 1 ? Model.dirname(root.result.outputs[0]) : Model.dirname(root.result.outputs[0]))
+      else if (root.result && root.result.outputs.length > 0) {
+        root.openPath(Model.dirname(root.result.outputs[0]))
+        root.close()
+      }
       else if (root.files.length > 0) root.clearFiles()
       else if (!pickProc.running) pickProc.running = true
       return
@@ -274,6 +281,21 @@ Item {
     onLoadFailed: root.userProfiles = null
   }
 
+  // Optional plugin presentation settings (~/.config/omarchy/omafilee.json)
+  FileView {
+    id: userConfigFile
+    path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/omarchy/omafilee.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      try {
+        var conf = JSON.parse(text()) || ({})
+        if (conf.mode === "corner" || conf.mode === "centered") root.presentationMode = conf.mode
+      } catch (e) {}
+    }
+  }
+
   Process {
     id: convertProc
     stdout: StdioCollector { id: convertOut; waitForEnd: true }
@@ -298,45 +320,14 @@ Item {
   // Hyprland's Lua state, so they are registered again on config.reloaded;
   // the version guard stops a shell restart from adding duplicates.
   readonly property string hyprLua: [
-    "local V = 'omafilee-2'",
+    "local V = 'omafilee-4'",
     "if _G.omafilee_rules == V then return end",
     "_G.omafilee_rules = V",
-    "local GAP, SHADOW = " + Math.round(Style.gapsOut) + ", " + Math.round(root.shadowMargin),
-    "local function ours(w) return w and w.class == 'org.quickshell' and w.title == 'OmaFilee' end",
-    // Top-right of its monitor, just under the bar, with the window's
-    // transparent shadow margin hanging past the corner. The rule places it
-    // before it maps, so Hyprland's popin grows it in place rather than
-    // sliding it in from wherever it would otherwise open.
-    "local function target(m)",
-    "  local r = m.reserved",
-    "  return m.width / m.scale - r.right - GAP + SHADOW, r.top + GAP - SHADOW",
-    "end",
-    "local right, top = target(hl.get_active_monitor())",
-    "hl.window_rule({",
-    "  match = { class = '^org\\\\.quickshell$', title = '^OmaFilee$' },",
-    "  tag = '-default-opacity', float = true, pin = true, no_initial_focus = true, no_dim = true,",
-    "  opacity = '1 1', border_size = 0, rounding = 0, no_shadow = true, no_blur = true,",
-    "  animation = 'popin 60%',",
-    "  move = { '(' .. math.floor(right) .. '-window_w)', tostring(math.floor(top)) },",
+    "hl.layer_rule({",
+    "  match = { namespace = 'omafilee' },",
+    "  blur = true,",
+    "  no_anim = true,",
     "})",
-    // A monitor whose bar differs from the one at registration: correct it.
-    "hl.on('window.open', function(w)",
-    "  if not ours(w) then return end",
-    "  local m = w.monitor or hl.get_active_monitor()",
-    "  local r, t = target(m)",
-    "  local x, y = math.floor(m.x + r - w.size.x), math.floor(m.y + t)",
-    "  if math.abs(w.at.x - x) > 1 or math.abs(w.at.y - y) > 1 then",
-    "    hl.dispatch(hl.dsp.window.move({ x = x, y = y, window = w }))",
-    "  end",
-    "end)",
-    // Hyprland has no always-on-top rule; raise the donut whenever focus moves.
-    "hl.on('window.active', function()",
-    "  for _, w in ipairs(hl.get_windows({ class = 'org.quickshell' })) do",
-    "    if w.mapped and w.title == 'OmaFilee' then",
-    "      hl.dispatch(hl.dsp.window.alter_zorder({ mode = 'top', window = w }))",
-    "    end",
-    "  end",
-    "end)"
   ].join("\n")
 
   function installHyprRules() {
@@ -369,29 +360,41 @@ Item {
 
   // ------------------------------------------------------------ window
 
-  FloatingWindow {
+  PanelWindow {
     id: win
-    title: "OmaFilee"
-    visible: root.opened
-    implicitWidth: root.side
-    implicitHeight: root.side
-    // Fixed size, so Super+right-drag can't stretch the donut.
-    minimumSize: Qt.size(root.side, root.side)
-    maximumSize: Qt.size(root.side, root.side)
+    visible: root.opened && !pickProc.running
+    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    // Only the donut takes input; the transparent corners pass clicks through.
-    mask: Region { item: hitCircle; shape: RegionShape.Ellipse }
+    WlrLayershell.namespace: "omafilee"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    exclusionMode: ExclusionMode.Ignore
 
-    Item {
-      id: hitCircle
-      anchors.centerIn: parent
-      width: 2 * (root.outerRadius + root.popOut)
-      height: width
+    // Backdrop scrim: blurs background in centered mode, transparent in corner mode.
+    Rectangle {
+      anchors.fill: parent
+      visible: !root.isCorner
+      color: Qt.rgba(0, 0, 0, 0.45)
+
+      MouseArea {
+        anchors.fill: parent
+        onClicked: root.close()
+      }
     }
 
     Item {
-      id: donut
-      anchors.fill: parent
+      id: donutContainer
+      anchors.centerIn: root.isCorner ? undefined : parent
+      anchors.top: root.isCorner ? parent.top : undefined
+      anchors.right: root.isCorner ? parent.right : undefined
+      anchors.topMargin: root.isCorner ? Style.gapsOut : 0
+      anchors.rightMargin: root.isCorner ? Style.gapsOut : 0
+      width: root.side
+      height: root.side
+
+      Item {
+        id: donut
+        anchors.fill: parent
 
       Canvas {
         id: ring
@@ -443,11 +446,11 @@ Item {
           ctx.arc(cx, cy + 4, shadowR, 0, 2 * Math.PI)
           ctx.fill()
 
-          // Solid backplate, so the gaps between slices read as dividers
+          // Backplate, so the gaps between slices read as dividers
           // rather than windows onto whatever is behind the donut.
           ctx.beginPath()
           ctx.arc(cx, cy, r2, 0, 2 * Math.PI)
-          ctx.fillStyle = Qt.darker(bg, 1.35)
+          ctx.fillStyle = css(Qt.darker(bg, 1.35), 0.75)
           ctx.fill()
 
           var n = count
@@ -457,7 +460,7 @@ Item {
             ctx.moveTo(cx + r1, cy)
             ctx.arc(cx, cy, r1, 0, 2 * Math.PI)
             ctx.fillRule = Qt.OddEvenFill
-            ctx.fillStyle = css(bg, 1)
+            ctx.fillStyle = css(bg, 0.75)
             ctx.fill()
             ctx.lineWidth = Math.max(1, Style.space(1.5))
             ctx.strokeStyle = css(border, 0.7)
@@ -479,10 +482,10 @@ Item {
             ctx.arc(ox, oy, r2, mid - ho - Math.PI / 2, mid + ho - Math.PI / 2, false)
             ctx.arc(ox, oy, r1, mid + hi - Math.PI / 2, mid - hi - Math.PI / 2, true)
             ctx.closePath()
-            ctx.fillStyle = css(bg, 1)
+            ctx.fillStyle = css(bg, 0.75)
             ctx.fill()
             if (hot) {
-              ctx.fillStyle = css(accent, 0.28)
+              ctx.fillStyle = css(accent, 0.35)
               ctx.fill()
             }
             ctx.lineWidth = Math.max(1, Style.space(hot ? 2 : 1.25))
@@ -653,4 +656,5 @@ Item {
       }
     }
   }
+}
 }

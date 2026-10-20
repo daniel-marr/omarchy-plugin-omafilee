@@ -47,19 +47,43 @@ This adds a swap-arrows button to the right of your bar. Move it with
 
 | Action | What happens |
 | --- | --- |
-| Click the bar button | Opens the donut in the top-right corner, under the bar. Click again to close it; nothing else closes it. |
+| Click the bar button | Opens the donut in the centre of the screen with a blurred backdrop. Click again or click the backdrop to close it. |
 | Drop files on the middle | Filee's conversions for that file type fan out around the ring. |
 | Click a slice | Converts the files. An arc spins round the ring while it works. |
 | Drop files straight onto a slice | Converts in one go, like Filee's own drag gesture. |
 | Click the empty middle | Opens a file picker instead of dragging. |
 | Click the middle while files are loaded | Clears them. Right-click always clears. |
 | Click the middle while converting | Cancels. |
-| Click the middle when done | Opens the folder with the converted files. |
-| **Super + drag** | Moves the donut, like any window. It returns to the top-right next time it opens. |
+| Click the middle when done | Opens the folder with the converted files and closes OmaFilee. |
+| **Super + drag** | Moves the donut, like any window. It returns to the centre next time it opens. |
 
 The donut follows you across workspaces and stays above other windows
 (fullscreen apps still cover it). Files that fail stay loaded, so you can try
 another slice; the reason shows in the middle.
+
+### Presentation Mode
+
+OmaFilee supports two presentation styles:
+
+- **`centered`** (default): Prominent centered modal with an ambient blurred backdrop and enlarged donut. Clicking outside dismisses it. When picking files via dialog, the overlay temporarily yields so the file picker stays in front.
+- **`corner`**: The original compact floating donut placed in the top-right corner under the bar without a backdrop.
+
+Configure your preference either on the widget in `~/.config/omarchy/shell.json`:
+
+```json
+{
+  "id": "daniel-marr.omafilee",
+  "mode": "corner"
+}
+```
+
+or in `~/.config/omarchy/omafilee.json`:
+
+```json
+{
+  "mode": "corner"
+}
+```
 
 ### Which slices appear
 
@@ -100,11 +124,9 @@ Paths must be absolute; at most 200 files per call.
 - **Converted files** are written next to the originals by Filee. Existing
   files are kept (Filee adds a number). Nothing is uploaded.
 - **Hyprland rules, at runtime only.** When the shell loads the plugin, it runs
-  `hyprctl eval` to register rules that match only its own window
-  (class `org.quickshell`, title `OmaFilee`): float, pin, no border, shadow or
-  blur, don't take focus when opening, place top-right under the bar, and
-  raise above other windows when focus changes. They're registered again after
-  a Hyprland config reload. Your Hyprland config files are not edited.
+  `hyprctl eval` to register a layer rule for namespace `omafilee` with
+  compositor blur enabled. It's registered again after a Hyprland config reload.
+  Your Hyprland config files are not edited.
 - **Commands it runs:** `filee` (formats, presets, convert),
   `omarchy-file-select` (the file picker), `xdg-open` (open the output folder)
   and `hyprctl eval` (the rules above). File names are passed as arguments,
@@ -131,7 +153,7 @@ Filee stays installed; remove it with the `uninstall.sh` in
   format (see Requirements).
 - **The donut opens as a tiled window:** the runtime rules didn't register.
   `hyprctl repl 'return tostring(_G.omafilee_rules)'` should print
-  `omafilee-2`; check the shell log with
+  `omafilee-4`; check the shell log with
   `quickshell log -p /usr/share/omarchy/shell | grep omafilee`.
 
 ## Development
