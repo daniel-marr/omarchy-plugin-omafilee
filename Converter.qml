@@ -23,6 +23,8 @@ Item {
   property var shell: null
   property var manifest: null
   property bool opened: false
+  property string presentationMode: "centered"
+  readonly property bool isCorner: presentationMode === "corner"
 
   // Catalogue from `filee formats` / `filee presets`, loaded once, plus the
   // user's own donuts from the Filee app when they exist.
@@ -43,10 +45,10 @@ Item {
   property var result: null
   property var pendingRequest: null
 
-  readonly property real outerRadius: Style.space(190)
-  readonly property real innerRadius: outerRadius * 0.44
-  readonly property real popOut: Style.space(8)
-  readonly property real shadowMargin: Style.space(20)
+  readonly property real outerRadius: Style.space(isCorner ? 150 : 190)
+  readonly property real innerRadius: outerRadius * (isCorner ? 0.42 : 0.44)
+  readonly property real popOut: Style.space(isCorner ? 7 : 8)
+  readonly property real shadowMargin: Style.space(isCorner ? 16 : 20)
   readonly property real side: 2 * (outerRadius + popOut + shadowMargin)
 
   readonly property color fg: Commons.Color.popups.text
@@ -80,6 +82,8 @@ Item {
     if (!root.catalogReady && !formatsProc.running) root.loadCatalog()
     var payload = ({})
     try { payload = JSON.parse(payloadJson || "{}") || ({}) } catch (e) { payload = ({}) }
+    if (typeof payload.mode === "string" && (payload.mode === "corner" || payload.mode === "centered"))
+      root.presentationMode = payload.mode
     if (Array.isArray(payload.files))
       root.loadFiles(payload.files.slice(0, 200).filter(function(p) { return typeof p === "string" }))
     if (typeof payload.preset === "string" && /^[A-Za-z0-9._-]{1,48}$/.test(payload.preset)) {
@@ -275,6 +279,21 @@ Item {
     onLoadFailed: root.userProfiles = null
   }
 
+  // Optional plugin presentation settings (~/.config/omarchy/omafilee.json)
+  FileView {
+    id: userConfigFile
+    path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/omarchy/omafilee.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      try {
+        var conf = JSON.parse(text()) || ({})
+        if (conf.mode === "corner" || conf.mode === "centered") root.presentationMode = conf.mode
+      } catch (e) {}
+    }
+  }
+
   Process {
     id: convertProc
     stdout: StdioCollector { id: convertOut; waitForEnd: true }
@@ -341,7 +360,7 @@ Item {
 
   PanelWindow {
     id: win
-    visible: root.opened
+    visible: root.opened && !pickProc.running
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
     WlrLayershell.namespace: "omafilee"
@@ -349,9 +368,10 @@ Item {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 
-    // Blurred backdrop scrim covering the screen; clicking it closes OmaFilee.
+    // Backdrop scrim: blurs background in centered mode, transparent in corner mode.
     Rectangle {
       anchors.fill: parent
+      visible: !root.isCorner
       color: Qt.rgba(0, 0, 0, 0.45)
 
       MouseArea {
@@ -362,7 +382,11 @@ Item {
 
     Item {
       id: donutContainer
-      anchors.centerIn: parent
+      anchors.centerIn: root.isCorner ? undefined : parent
+      anchors.top: root.isCorner ? parent.top : undefined
+      anchors.right: root.isCorner ? parent.right : undefined
+      anchors.topMargin: root.isCorner ? Style.gapsOut : 0
+      anchors.rightMargin: root.isCorner ? Style.gapsOut : 0
       width: root.side
       height: root.side
 

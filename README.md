@@ -61,6 +61,30 @@ The donut follows you across workspaces and stays above other windows
 (fullscreen apps still cover it). Files that fail stay loaded, so you can try
 another slice; the reason shows in the middle.
 
+### Presentation Mode
+
+OmaFilee supports two presentation styles:
+
+- **`centered`** (default): Prominent centered modal with an ambient blurred backdrop and enlarged donut. Clicking outside dismisses it. When picking files via dialog, the overlay temporarily yields so the file picker stays in front.
+- **`corner`**: The original compact floating donut placed in the top-right corner under the bar without a backdrop.
+
+Configure your preference either on the widget in `~/.config/omarchy/shell.json`:
+
+```json
+{
+  "id": "daniel-marr.omafilee",
+  "mode": "corner"
+}
+```
+
+or in `~/.config/omarchy/omafilee.json`:
+
+```json
+{
+  "mode": "corner"
+}
+```
+
 ### Which slices appear
 
 The slices are Filee's own donuts, chosen by file type:

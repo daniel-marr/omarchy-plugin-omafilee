@@ -20,9 +20,12 @@ BarWidget {
     root.converterOpen = root.pluginShell ? root.pluginShell.isPluginOpen(root.pluginId) === true : false
   }
 
+  readonly property string configuredMode: typeof setting === "function" ? setting("mode", "centered") : "centered"
+
   function toggle() {
-    if (root.pluginShell) root.pluginShell.toggle(root.pluginId, "")
-    else Quickshell.execDetached(["omarchy-shell", "-q", "shell", "toggle", root.pluginId, ""])
+    var payload = JSON.stringify({ mode: root.configuredMode })
+    if (root.pluginShell) root.pluginShell.toggle(root.pluginId, payload)
+    else Quickshell.execDetached(["omarchy-shell", "-q", "shell", "toggle", root.pluginId, payload])
     Qt.callLater(root.sync)
   }
 
