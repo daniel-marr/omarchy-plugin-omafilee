@@ -54,7 +54,7 @@ This adds a swap-arrows button to the right of your bar. Move it with
 | Click the empty middle | Opens a file picker instead of dragging. |
 | Click the middle while files are loaded | Clears them. Right-click always clears. |
 | Click the middle while converting | Cancels. |
-| Click the middle when done | Opens the folder with the converted files. |
+| Click the middle when done | Opens the folder with the converted files and closes OmaFilee. |
 | **Super + drag** | Moves the donut, like any window. It returns to the centre next time it opens. |
 
 The donut follows you across workspaces and stays above other windows

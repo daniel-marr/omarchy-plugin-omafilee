@@ -189,8 +189,10 @@ Item {
     if (hit.kind === "center") {
       if (button === Qt.RightButton) { root.clearFiles(); return }
       if (root.busy) root.cancel()
-      else if (root.result && root.result.outputs.length > 0)
-        root.openPath(root.result.outputs.length === 1 ? Model.dirname(root.result.outputs[0]) : Model.dirname(root.result.outputs[0]))
+      else if (root.result && root.result.outputs.length > 0) {
+        root.openPath(Model.dirname(root.result.outputs[0]))
+        root.close()
+      }
       else if (root.files.length > 0) root.clearFiles()
       else if (!pickProc.running) pickProc.running = true
       return
