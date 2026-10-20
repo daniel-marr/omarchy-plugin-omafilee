@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.Commons
@@ -298,41 +299,14 @@ Item {
   // Hyprland's Lua state, so they are registered again on config.reloaded;
   // the version guard stops a shell restart from adding duplicates.
   readonly property string hyprLua: [
-    "local V = 'omafilee-3'",
+    "local V = 'omafilee-4'",
     "if _G.omafilee_rules == V then return end",
     "_G.omafilee_rules = V",
-    "local function ours(w) return w and w.class == 'org.quickshell' and w.title == 'OmaFilee' end",
-    // Centre of its monitor. The move rule places it before mapping so
-    // Hyprland's popin animation grows it directly from the centre.
-    "local function target(m)",
-    "  return (m.width / m.scale) / 2, (m.height / m.scale) / 2",
-    "end",
-    "local cx, cy = target(hl.get_active_monitor())",
-    "hl.window_rule({",
-    "  match = { class = '^org\\\\.quickshell$', title = '^OmaFilee$' },",
-    "  tag = '-default-opacity', float = true, pin = true, no_initial_focus = true, no_dim = true,",
-    "  opacity = '1 1', border_size = 0, rounding = 0, no_shadow = false, no_blur = false,",
-    "  animation = 'popin 70%',",
-    "  move = { '(' .. math.floor(cx) .. '-window_w/2)', '(' .. math.floor(cy) .. '-window_h/2)' },",
+    "hl.layer_rule({",
+    "  match = { namespace = 'omafilee' },",
+    "  blur = true,",
+    "  no_anim = true,",
     "})",
-    // Ensure accurate centring across multi-monitor setups.
-    "hl.on('window.open', function(w)",
-    "  if not ours(w) then return end",
-    "  local m = w.monitor or hl.get_active_monitor()",
-    "  local tcx, tcy = target(m)",
-    "  local x, y = math.floor(m.x + tcx - w.size.x / 2), math.floor(m.y + tcy - w.size.y / 2)",
-    "  if math.abs(w.at.x - x) > 1 or math.abs(w.at.y - y) > 1 then",
-    "    hl.dispatch(hl.dsp.window.move({ x = x, y = y, window = w }))",
-    "  end",
-    "end)",
-    // Hyprland has no always-on-top rule; raise the donut whenever focus moves.
-    "hl.on('window.active', function()",
-    "  for _, w in ipairs(hl.get_windows({ class = 'org.quickshell' })) do",
-    "    if w.mapped and w.title == 'OmaFilee' then",
-    "      hl.dispatch(hl.dsp.window.alter_zorder({ mode = 'top', window = w }))",
-    "    end",
-    "  end",
-    "end)"
   ].join("\n")
 
   function installHyprRules() {
@@ -365,29 +339,36 @@ Item {
 
   // ------------------------------------------------------------ window
 
-  FloatingWindow {
+  PanelWindow {
     id: win
-    title: "OmaFilee"
     visible: root.opened
-    implicitWidth: root.side
-    implicitHeight: root.side
-    // Fixed size, so Super+right-drag can't stretch the donut.
-    minimumSize: Qt.size(root.side, root.side)
-    maximumSize: Qt.size(root.side, root.side)
+    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    // Only the donut takes input; the transparent corners pass clicks through.
-    mask: Region { item: hitCircle; shape: RegionShape.Ellipse }
+    WlrLayershell.namespace: "omafilee"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    exclusionMode: ExclusionMode.Ignore
 
-    Item {
-      id: hitCircle
-      anchors.centerIn: parent
-      width: 2 * (root.outerRadius + root.popOut)
-      height: width
+    // Blurred backdrop scrim covering the screen; clicking it closes OmaFilee.
+    Rectangle {
+      anchors.fill: parent
+      color: Qt.rgba(0, 0, 0, 0.45)
+
+      MouseArea {
+        anchors.fill: parent
+        onClicked: root.close()
+      }
     }
 
     Item {
-      id: donut
-      anchors.fill: parent
+      id: donutContainer
+      anchors.centerIn: parent
+      width: root.side
+      height: root.side
+
+      Item {
+        id: donut
+        anchors.fill: parent
 
       Canvas {
         id: ring
@@ -649,4 +630,5 @@ Item {
       }
     }
   }
+}
 }
