@@ -47,7 +47,7 @@ This adds a swap-arrows button to the right of your bar. Move it with
 
 | Action | What happens |
 | --- | --- |
-| Click the bar button | Opens the donut in the top-right corner, under the bar. Click again to close it; nothing else closes it. |
+| Click the bar button | Opens the donut in the centre of the screen. Click again to close it; nothing else closes it. |
 | Drop files on the middle | Filee's conversions for that file type fan out around the ring. |
 | Click a slice | Converts the files. An arc spins round the ring while it works. |
 | Drop files straight onto a slice | Converts in one go, like Filee's own drag gesture. |
@@ -55,7 +55,7 @@ This adds a swap-arrows button to the right of your bar. Move it with
 | Click the middle while files are loaded | Clears them. Right-click always clears. |
 | Click the middle while converting | Cancels. |
 | Click the middle when done | Opens the folder with the converted files. |
-| **Super + drag** | Moves the donut, like any window. It returns to the top-right next time it opens. |
+| **Super + drag** | Moves the donut, like any window. It returns to the centre next time it opens. |
 
 The donut follows you across workspaces and stays above other windows
 (fullscreen apps still cover it). Files that fail stay loaded, so you can try
@@ -101,10 +101,11 @@ Paths must be absolute; at most 200 files per call.
   files are kept (Filee adds a number). Nothing is uploaded.
 - **Hyprland rules, at runtime only.** When the shell loads the plugin, it runs
   `hyprctl eval` to register rules that match only its own window
-  (class `org.quickshell`, title `OmaFilee`): float, pin, no border, shadow or
-  blur, don't take focus when opening, place top-right under the bar, and
-  raise above other windows when focus changes. They're registered again after
-  a Hyprland config reload. Your Hyprland config files are not edited.
+  (class `org.quickshell`, title `OmaFilee`): float, pin, no border,
+  soft shadow and compositor blur, don't take focus when opening, place in the
+  centre of the screen, and raise above other windows when focus changes.
+  They're registered again after a Hyprland config reload. Your Hyprland
+  config files are not edited.
 - **Commands it runs:** `filee` (formats, presets, convert),
   `omarchy-file-select` (the file picker), `xdg-open` (open the output folder)
   and `hyprctl eval` (the rules above). File names are passed as arguments,
@@ -131,7 +132,7 @@ Filee stays installed; remove it with the `uninstall.sh` in
   format (see Requirements).
 - **The donut opens as a tiled window:** the runtime rules didn't register.
   `hyprctl repl 'return tostring(_G.omafilee_rules)'` should print
-  `omafilee-2`; check the shell log with
+  `omafilee-3`; check the shell log with
   `quickshell log -p /usr/share/omarchy/shell | grep omafilee`.
 
 ## Development

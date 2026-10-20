@@ -42,15 +42,15 @@ Item {
   property var result: null
   property var pendingRequest: null
 
-  readonly property real outerRadius: Style.space(150)
-  readonly property real innerRadius: outerRadius * 0.42
-  readonly property real popOut: Style.space(7)
-  readonly property real shadowMargin: Style.space(16)
+  readonly property real outerRadius: Style.space(190)
+  readonly property real innerRadius: outerRadius * 0.44
+  readonly property real popOut: Style.space(8)
+  readonly property real shadowMargin: Style.space(20)
   readonly property real side: 2 * (outerRadius + popOut + shadowMargin)
 
   readonly property color fg: Commons.Color.popups.text
-  // Opaque: the theme's popup background can carry alpha.
-  readonly property color bg: Qt.rgba(Commons.Color.popups.background.r, Commons.Color.popups.background.g, Commons.Color.popups.background.b, 1)
+  // Translucent with blur: allows Omarchy compositor blur to show through
+  readonly property color bg: Qt.rgba(Commons.Color.popups.background.r, Commons.Color.popups.background.g, Commons.Color.popups.background.b, 0.75)
   readonly property color border: Commons.Color.popups.border
   readonly property color accent: Commons.Color.accent
   readonly property string fontFamily: Style.font.family
@@ -298,33 +298,29 @@ Item {
   // Hyprland's Lua state, so they are registered again on config.reloaded;
   // the version guard stops a shell restart from adding duplicates.
   readonly property string hyprLua: [
-    "local V = 'omafilee-2'",
+    "local V = 'omafilee-3'",
     "if _G.omafilee_rules == V then return end",
     "_G.omafilee_rules = V",
-    "local GAP, SHADOW = " + Math.round(Style.gapsOut) + ", " + Math.round(root.shadowMargin),
     "local function ours(w) return w and w.class == 'org.quickshell' and w.title == 'OmaFilee' end",
-    // Top-right of its monitor, just under the bar, with the window's
-    // transparent shadow margin hanging past the corner. The rule places it
-    // before it maps, so Hyprland's popin grows it in place rather than
-    // sliding it in from wherever it would otherwise open.
+    // Centre of its monitor. The move rule places it before mapping so
+    // Hyprland's popin animation grows it directly from the centre.
     "local function target(m)",
-    "  local r = m.reserved",
-    "  return m.width / m.scale - r.right - GAP + SHADOW, r.top + GAP - SHADOW",
+    "  return (m.width / m.scale) / 2, (m.height / m.scale) / 2",
     "end",
-    "local right, top = target(hl.get_active_monitor())",
+    "local cx, cy = target(hl.get_active_monitor())",
     "hl.window_rule({",
     "  match = { class = '^org\\\\.quickshell$', title = '^OmaFilee$' },",
     "  tag = '-default-opacity', float = true, pin = true, no_initial_focus = true, no_dim = true,",
-    "  opacity = '1 1', border_size = 0, rounding = 0, no_shadow = true, no_blur = true,",
-    "  animation = 'popin 60%',",
-    "  move = { '(' .. math.floor(right) .. '-window_w)', tostring(math.floor(top)) },",
+    "  opacity = '1 1', border_size = 0, rounding = 0, no_shadow = false, no_blur = false,",
+    "  animation = 'popin 70%',",
+    "  move = { '(' .. math.floor(cx) .. '-window_w/2)', '(' .. math.floor(cy) .. '-window_h/2)' },",
     "})",
-    // A monitor whose bar differs from the one at registration: correct it.
+    // Ensure accurate centring across multi-monitor setups.
     "hl.on('window.open', function(w)",
     "  if not ours(w) then return end",
     "  local m = w.monitor or hl.get_active_monitor()",
-    "  local r, t = target(m)",
-    "  local x, y = math.floor(m.x + r - w.size.x), math.floor(m.y + t)",
+    "  local tcx, tcy = target(m)",
+    "  local x, y = math.floor(m.x + tcx - w.size.x / 2), math.floor(m.y + tcy - w.size.y / 2)",
     "  if math.abs(w.at.x - x) > 1 or math.abs(w.at.y - y) > 1 then",
     "    hl.dispatch(hl.dsp.window.move({ x = x, y = y, window = w }))",
     "  end",
@@ -443,11 +439,11 @@ Item {
           ctx.arc(cx, cy + 4, shadowR, 0, 2 * Math.PI)
           ctx.fill()
 
-          // Solid backplate, so the gaps between slices read as dividers
+          // Backplate, so the gaps between slices read as dividers
           // rather than windows onto whatever is behind the donut.
           ctx.beginPath()
           ctx.arc(cx, cy, r2, 0, 2 * Math.PI)
-          ctx.fillStyle = Qt.darker(bg, 1.35)
+          ctx.fillStyle = css(Qt.darker(bg, 1.35), 0.75)
           ctx.fill()
 
           var n = count
@@ -457,7 +453,7 @@ Item {
             ctx.moveTo(cx + r1, cy)
             ctx.arc(cx, cy, r1, 0, 2 * Math.PI)
             ctx.fillRule = Qt.OddEvenFill
-            ctx.fillStyle = css(bg, 1)
+            ctx.fillStyle = css(bg, 0.75)
             ctx.fill()
             ctx.lineWidth = Math.max(1, Style.space(1.5))
             ctx.strokeStyle = css(border, 0.7)
@@ -479,10 +475,10 @@ Item {
             ctx.arc(ox, oy, r2, mid - ho - Math.PI / 2, mid + ho - Math.PI / 2, false)
             ctx.arc(ox, oy, r1, mid + hi - Math.PI / 2, mid - hi - Math.PI / 2, true)
             ctx.closePath()
-            ctx.fillStyle = css(bg, 1)
+            ctx.fillStyle = css(bg, 0.75)
             ctx.fill()
             if (hot) {
-              ctx.fillStyle = css(accent, 0.28)
+              ctx.fillStyle = css(accent, 0.35)
               ctx.fill()
             }
             ctx.lineWidth = Math.max(1, Style.space(hot ? 2 : 1.25))
